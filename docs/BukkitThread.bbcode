@@ -1,8 +1,214 @@
 Remote Console - Manage your server from any computer:
 [B]Version:[/B] v0.5
 
-This is a description of my awesome test plugin and how to use it.
+Remote Console is a Python application that uses JSONAPI to communicate with and control your Minecraft server.
 
+Usage Instructions:
+[SPOILER]
+Remote Console is entirely text based so all interaction is in the form of commands, much like the minecraft chat itself. Commands are split into five categories:
+    [LIST][*]internal (local) - Commands that affect Minecraft Remote Console on your local computer
+    [*]connection - Commands that affect the connection between Minecraft Remote Console and JSONAPI
+    [*]JSONAPI - execute JSONAPI methods on the remote server
+    [*]Minecraft - executes minecraft console commands
+    [*]Chat - sends a chat message to the remote server[/LIST]
+
+These categories are differentiated by a prefix character. Each category has exactly one unique prefix character, except for chat which is a catch-all category. The prefixes are:
+    [LIST][*]# - internal commands
+    [*]% - connection commands
+    [*]: - JSONAPI commands
+    [*]/ - Minecraft commands[/LIST]
+
+For a complete listing of available commands and how to use them consult the help commands, which are unimaginitively named: #help, %help, :help and /help
+
+Following is a quick session example that connects to a server, lists connected players through JSONAPI, giving the player an item through a Minecraft command, sending a chat message and disconnecting. User input is indicated by prefixing the line with a triple chevron ('>>>')
+[CODE]
+>>> %connect localhost 20059 admin demo ""
+2011-07-19 20:32:07 [INFO] Lord_DragonFly [/74.75.145.48:57867] logged in with entity id 153454 at ([world] -762.7432328432731, 64.0, 672.1997188286858)
+>>> :getPlayer Lord_Dragonfly
+{
+  "worldInfo": {
+    "environment": "normal", 
+    "fullTime": 1558040, 
+    "name": "world", 
+    "time": 22040
+  }, 
+  "name": "Lord_DragonFly", 
+  "ip": "/74.75.145.48:57867", 
+  "itemInHand": {
+    "amount": 37, 
+    "type": 89, 
+    "durability": 0
+  }, 
+  "inVehicle": false, 
+  "sleeping": false, 
+  "health": 5, 
+  "inventory": {
+    "armor": {
+      "helmet": {
+        "amount": 0, 
+        "type": 0, 
+        "durability": -1
+      }, 
+      "chestplate": {
+        "amount": 0, 
+        "type": 0, 
+        "durability": -1
+      }, 
+      "leggings": {
+        "amount": 0, 
+        "type": 0, 
+        "durability": -1
+      }, 
+      "boots": {
+        "amount": 0, 
+        "type": 0, 
+        "durability": -1
+      }
+    }, 
+    "inventory": [
+      {
+        "amount": 37, 
+        "type": 89, 
+        "durability": 0
+      }, 
+      {
+        "amount": 1, 
+        "type": 271, 
+        "durability": 0
+      }, 
+      null, 
+      {
+        "amount": 55, 
+        "type": 50, 
+        "durability": 0
+      }, 
+      {
+        "amount": 64, 
+        "type": 3, 
+        "durability": 0
+      }, 
+      {
+        "amount": 50, 
+        "type": 3, 
+        "durability": 0
+      }, 
+      null, 
+      {
+        "amount": 22, 
+        "type": 24, 
+        "durability": 0
+      }, 
+      {
+        "amount": 1, 
+        "type": 278, 
+        "durability": 1375
+      }, 
+      null, 
+      null, 
+      null, 
+      null, 
+      null, 
+      null, 
+      null, 
+      {
+        "amount": 2, 
+        "type": 288, 
+        "durability": 0
+      }, 
+      {
+        "amount": 2, 
+        "type": 287, 
+        "durability": 0
+      }, 
+      null, 
+      {
+        "amount": 64, 
+        "type": 50, 
+        "durability": 0
+      }, 
+      null, 
+      null, 
+      null, 
+      null, 
+      null, 
+      {
+        "amount": 64, 
+        "type": 24, 
+        "durability": 0
+      }, 
+      {
+        "amount": 64, 
+        "type": 24, 
+        "durability": 0
+      }, 
+      null, 
+      {
+        "amount": 64, 
+        "type": 24, 
+        "durability": 0
+      }, 
+      {
+        "amount": 8, 
+        "type": 12, 
+        "durability": 0
+      }, 
+      {
+        "amount": 64, 
+        "type": 12, 
+        "durability": 0
+      }, 
+      {
+        "amount": 64, 
+        "type": 12, 
+        "durability": 0
+      }, 
+      {
+        "amount": 64, 
+        "type": 12, 
+        "durability": 0
+      }, 
+      {
+        "amount": 64, 
+        "type": 24, 
+        "durability": 0
+      }, 
+      {
+        "amount": 64, 
+        "type": 24, 
+        "durability": 0
+      }, 
+      {
+        "amount": 64, 
+        "type": 24, 
+        "durability": 0
+      }
+    ], 
+    "hand": {
+      "amount": 37, 
+      "type": 89, 
+      "durability": 0
+    }
+  }, 
+  "sneaking": false, 
+  "world": 0, 
+  "op": true, 
+  "location": {
+    "y": 64.0, 
+    "x": -762.65625, 
+    "yaw": -173.45679000000001, 
+    "z": 672.28125, 
+    "pitch": -10.199923999999999
+  }
+}
+>>> /give Lord_Dragonfly 1 1
+2011-07-19 20:38:16 [INFO] Giving Lord_DragonFly some 1
+2011-07-19 20:38:16 [INFO] APIWrapperMethods: Giving Lord_DragonFly some 1
+>>> Hello there Dragonfly, have some stone.
+2011-07-19 20:38:41 [INFO] <Metatron> Hello there Dragonfly, have some stone.
+2011-07-19 20:38:41 [INFO] message:<Metatron> Hello there Dragonfly, have some stone.
+>>> #quit
+[/CODE]
+[/SPOILER]
 [B]Features:[/B]
 [LIST]
 [*]Allows complete administration of any bukkit enabled server through JSONAPI
@@ -10,7 +216,7 @@ This is a description of my awesome test plugin and how to use it.
 [*]Execute any console command
 [*]Execute any JSONAPI command
 [/LIST]
-[URL=""]Download Minecraft Remote Console[/URL]
+Download Minecraft Remote Console: [URL="https://github.com/AccaliaDeElementia/Minecraft-Remote-Console/blob/master/releases/Minecraft_Remote_Console-v0.5.zip"]ZIP[/URL] [URL="https://github.com/AccaliaDeElementia/Minecraft-Remote-Console/blob/master/releases/Minecraft_Remote_Console-v0.5.tbz2"]tar.bz2[/URL]
 [URL="https://github.com/AccaliaDeElementia/Minecraft-Remote-Console"]Source Code[/URL]
 
 [B]Changelog:[/B]
