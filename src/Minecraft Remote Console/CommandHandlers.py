@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# vim: set shiftwidth=4 softtabstop=4 expandtab autoindent syntax=python:
 
 import wx
 import csv
@@ -383,4 +384,4 @@ class Controller (object):
         chatCommands = RemoteConsoleChatCommands(prefix='/', **self.__params)
         self.__ui.AddHandler(lambda x: chatCommands.handleCommand(x))
 
-# vim: set shiftwidth=4 tabstop=4 softtabstop=4 smarttab expandtab
+

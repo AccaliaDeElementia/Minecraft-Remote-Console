@@ -10,8 +10,6 @@ from MinecraftApi import MinecraftJsonApi
 from SubscriptionManager import SubscriptionReader
 from CommandHandlers import Controller
 
-EVENTS = set(['send','recv','presend', 'postsend', 'prerecv', 'postrecv', 'exit'])
-
 class RemoteConsoleUI(wx.Frame):
     class _controls (object):
         def __init__(self, parent):
@@ -32,7 +30,6 @@ class RemoteConsoleUI(wx.Frame):
             self.inputArea = wx.Panel(self.contentArea)
             self.inputSizer = wx.BoxSizer(wx.HORIZONTAL)
             self.inputArea.SetSizer(self.inputSizer)
-
 
             self.entry = wx.TextCtrl(self.inputArea)
             self.entry.SetFocus()
@@ -55,9 +52,6 @@ class RemoteConsoleUI(wx.Frame):
         self.__onCloseHandlers = []
         self.__history = ['']
         self.__history_pos = 0
-        self.__handlers = {}
-        for event in EVENTS:
-            self.__handlers[event] = []
 
     def __initUI(self):
         self.controls.entry.Bind(wx.EVT_CHAR, self.__evtEntryChar)
@@ -151,33 +145,13 @@ class RemoteConsoleUI(wx.Frame):
                 pass
         event.Skip()
 
-    def bind(self, event, handler):
-        if not isinstance(event, str):
-            raise TypeError('event must be a string')
-        if event not in EVENTS:
-            raise ValueError('Unrecognized event "%s"' % event)
-        self.__handlers[event] = handler
-
-    def trigger(self, event, data):
-        if not isinstance(event, str):
-            raise TypeError('event must be a string')
-        if event not in EVENTS:
-            raise ValueError('Unrecognized event "%s"' % event)
-        handled = False
-        for handler in self.__handlers[event]:
-            try:
-                ret = handler(data, handled)
-                handled = handled or ret
-            except:
-                pass
-
-    def _AddHandler(self, handler, pos=None):
+    def AddHandler(self, handler, pos=None):
         if pos == None or pos >= len(self.__onSendHandlers):
             self.__onSendHandlers.append(handler)
         else:
             self.__onSendHandlers.insert(pos, handler)
 
-    def _AddCloser(self, handler, pos=-1):
+    def AddCloser(self, handler, pos=-1):
         if pos == None or pos >= len(self.__onCloseHandlers):
             self.__onCloseHandlers.append(handler)
         else:
