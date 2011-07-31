@@ -1,4 +1,7 @@
 #!/usr/bin/python
+from os import path
+import pickle
+
 import wx
 
 from Window import AdvancedWindow
@@ -10,6 +13,7 @@ def noop(*args, **kwargs):
 
 class Control (object):
     ENVIRON_STORE = '__environ_store'
+    STORES_PATH = path.expanduser('~/.MinecraftRemoteConsole.store')
     def __init__(self, window):
         self.__window = window
         window.Bind(wx.EVT_CLOSE, self.__evt_close_window)
@@ -19,6 +23,10 @@ class Control (object):
         self.__default_handler = noop
         self.__stores = {}
         self.__quitting = False
+        try:
+            self.load()
+        except Exception as e:
+            print(str(e))
 
     def __evt_entry_char(self, event):
         '''Handles special case character entry.
@@ -99,17 +107,17 @@ class Control (object):
         if not evt.is_canceled:
             wx.CallAfter(__quit)
 
-    def __clear(self):
-        self.__window.Freeze()
-        try:
-            self.__window._output.Value = ''
-        finally:
-            self.__window.Thaw()
 
     def clear(self):
         '''Clear the output
         '''
-        wx.CallAfter(self.__clear)
+        def __clear():
+            self.__window.Freeze()
+            try:
+                self.__window._output.Value = ''
+            finally:
+                self.__window.Thaw()
+        wx.CallAfter(__clear)
 
     def scroll_down(self):
         '''Scroll the output window down
@@ -120,6 +128,16 @@ class Control (object):
         '''Scroll the output window up
         '''
         wx.CallAfter(self.__window._output.PageUp)
+
+    def save(self):
+        '''Save persistant data to disk'''
+        with open(self.STORES_PATH, 'wb') as stores:
+            pickle.dump(self.__stores, stores, -1)
+
+    def load(self):
+        '''Load persistant data from disk'''
+        with open(self.STORES_PATH, 'rb') as stores:
+            self.__stores = pickle.load(stores)
 
     def register_commands(self, category):
         if not isinstance(category, CommandCategory):

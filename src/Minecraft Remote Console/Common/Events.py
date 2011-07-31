@@ -15,7 +15,11 @@ class Event(object):
         self.event_type = Event.TYPE_ANY
         self.data = data
         self.clear_input = False
-        _args = list(csv.reader([data.rstrip()], delimiter=' '))
+        _args = None
+        try:
+            _args = list(csv.reader([data.rstrip()], delimiter=' '))
+        except Exception:
+            pass
         self.args = _args[0] if _args else []
         self.is_canceled = False
         self.is_handled = False
