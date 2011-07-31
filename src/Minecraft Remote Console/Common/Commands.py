@@ -1,8 +1,8 @@
 #!/usr/bin/python
 import sys
 import csv
-from inspect import getargspec
 
+from Common.Events import Event
 def trim_docstring(docstring):
     '''Trim whitespace from string according to python docstring conventions.
     '''
@@ -25,6 +25,14 @@ def trim_docstring(docstring):
     return '\n'.join(trimmed)
 
 class Command (object):
+    @staticmethod
+    def annotate(**kwargs):
+        def decorate(f):
+            for k in kwargs:
+                setattr(f, k, kwargs[k])
+            return f
+        return decorate
+
     def __init__(self,
             handler,
             name=None, 
@@ -32,7 +40,8 @@ class Command (object):
             description=None,
             detail_help=None,
             environment=None,
-            visible=None):
+            visible=None,
+            events=None):
         '''Create a command object for use in Minecraft Remote Console.
 
         All optional arguments will be determined through introspection of the 
@@ -47,10 +56,11 @@ class Command (object):
             environment -- A list of two-tuples of the form:
                 (variable_used, short_description_of_use)
             visible -- Set visiblity of command to unfiltered help
+            events -- a list of Event.TYPE_* to listen to
         '''
+        resolve = lambda x,y: x if x != None else y
 
         if isinstance(handler, Command):
-            resolve = lambda x,y: x if x is not None else y
             if name is None:
                 raise ValueError('Name must be provided for alias commands')
             parameters = resolve(parameters, handler.parameters)
@@ -58,6 +68,7 @@ class Command (object):
             detail_help = resolve(detail_help, handler.detail_help)
             environment = resolve(environment, handler.environment)
             visible = resolve(visible, False)
+            events = resolve(events, handler.events)
             handler = handler.handler
 
         if not callable(handler):
@@ -81,10 +92,11 @@ class Command (object):
                     raise ValueError('parameters must be sequence of strings')
             self.__optional_parameters = len([1 for i in parameters 
                                                 if i.startswith('_')])
+            paratrim = lambda x: x[1:] if x.startswith('_') else x
+            parameters = [paratrim(x) for x in parameters]
         else:
-            _args = getargspec(handler)
-            self.__optional_parameters = len(_args.defaults)
-            parameters = _args.args
+            self.__optional_parameters = 0
+            parameters = []
         self.parameters = parameters
 
         _docstr = trim_docstring(handler.__doc__)
@@ -103,61 +115,120 @@ class Command (object):
         else:
             detail_help = ('\n'.join(_docstr.splitlines()[1:]) 
                             if len(_docstr) > 0 
-                            else 'No help text available')
+                            else '')
         self.detail_help = detail_help
 
-        self.environment = environment if environment is not None else []
-        self.visible = bool(visible) if visible is not None else True
+        self.environment = resolve(environment, [])
+        self.visible = bool(resolve(visible, True))
+        self.events = resolve(events, [])
         self.prefix=''
 
-    def invoke(self, parameters):
-        if (not isinstance(parameters, list) and 
-                not isinstance(parameters, tuple)):
-            raise TypeError('parameters must be a sequence type')
-        plen = len(paramters)
-        alen = len(self.parameters)
-        olen = alen - self.__optional_parameters
-        if plen > alen or plen < olen:
-            raise ValueError('Invalid parameter count')
-        return self.handler(*parameters, **{})
+    def invoke(self, event):
+        inval ='Invalid parameter count. See `%shelp %s` for details.' 
+        if event.event_type == Event.TYPE_INPUT:
+            args = len(event.args)-1
+            oargs = self.__optional_parameters
+            rargs = len(self.parameters) - oargs
+            if args < rargs or args > rargs + oargs:
+                event.add_output(inval % (self.prefix, self.name))
+                event.is_handled = True
+                return
+        self.handler(event)
 
     def __str__(self):
-        template = 'Usage: {prefix}{name} {ropts} [{oopts}]\n\n{desc}\n{det}'
+        template = 'Usage: {prefix}{name} {opts}\n\n{desc}\n{det}'
+        otemplate = 'Usage: {prefix}{name} {ropts} [{oopts}]\n\n{desc}\n{det}'
         rparams = len(self.parameters) - self.__optional_parameters
-        return template.format(
+        if self.__optional_parameters:
+            return otemplate.format(
                     prefix = self.prefix,
                     name= self.name,
                     ropts=' '.join(self.parameters[:rparams]),
                     oopts=' '.join(self.parameters[rparams:]),
                     desc=self.description,
                     det=self.detail_help)
+        return template.format(
+                    prefix = self.prefix,
+                    name= self.name,
+                    opts=' '.join(self.parameters[:rparams]),
+                    desc=self.description,
+                    det=self.detail_help)
 
 
 class CommandCategory(object):
-    def __init__(self, prefix, name, description = None)
+    def __init__(self, prefix, name, description = None):
         self.prefix = prefix
         self.name = name
         self.description = description
         self.__commands = {}
+        self.add_command(Command(lambda x: self.__help(x),
+            name='help',
+            description='Show help for command category',
+            parameters=['_cmd'],
+            events=[Event.TYPE_INPUT]))
+
+    def __help(self, event):
+        '''Show help for command category
+        '''
+        vars_used = 'Variables used:'
+        if len(event.args) == 1:
+            cmds = [c for c 
+                      in self.__commands.get(Event.TYPE_INPUT, {}).values()
+                      if c.visible]
+            cmds.sort(lambda x,y: cmp(x.name, y.name))
+            event.add_output('Available Commands')
+            for cmd in cmds:
+                event.add_output('{prefix}{name} - {desc}'.format(
+                    prefix = cmd.prefix,
+                    name = cmd.name,
+                    desc = cmd.description
+                ))
+        else:
+            cmd = (self.__commands
+                    .get(Event.TYPE_INPUT,{}).get(event.args[1],None))
+            if cmd != None:
+                event.add_output(str(cmd))
+            else:
+                event.add_output('Command "%s" not found.' % event.args[1])
+            
+        event.is_handled = True
+                
 
     def add_command(self, command):
-        command.prefix = self.prefix
-        self.__commands[command.name] = command
+        '''Add command to this category
 
-    def invoke(self, input_):
-        def _parse_args (args):
-            parsed = list(csv.reader([args], delimiter=' '))
-            return parsed[0] if len(parsed) > 0 else []
-        command, sep, args = input_.partition(' ')
-        if command in self.__commands:
-            parameters = _parse_args(args)
-            rvalue = ''
+        The add operation may overwrite an existing command if name collision
+        occurs.
+        '''
+        command.prefix = self.prefix
+        for evt in command.events:
+            if evt not in self.__commands.keys():
+                self.__commands[evt] = {}
+            self.__commands[evt][command.name] = command
+
+    def invoke(self, event):
+        '''Invoke the event for all registered listeners in this category.
+        '''
+        def resolve_cmd(type_, name):
+            evt = self.__commands.get(type_, {})
+            return evt.get(name, None)
+        def run_cmd(cmd):
             try:
-                rvalue = self.__commands[command].invoke(parameters)
+                cmd.invoke(event)
             except Exception as e:
-                rvalue = 'Command encountered unexpected error: ' + str(e)
-            return rvalue
+                event.add_output('Command encountered unexpected error: %s'%e)
+                event.stop_propagation = True
+                raise 
+        if event.event_type & Event.TYPE_INPUT != 0: # InputEvents are special
+            if event.data and event.data[0] == self.prefix:
+                cmd = resolve_cmd(event.event_type, event.args[0][1:])
+                if cmd == None:
+                    event.add_output ('Unrecognized command')
+                    event.is_handled = True
+                else:
+                    run_cmd(cmd)
         else:
-            return 'Unrecognized command'
+            for cmd in self.__commands.get(event.event_type, {}).values():
+                run_cmd(cmd)
 
 # vim: shiftwidth=4:softtabstop=4:expandtab:autoindent:syntax=python
