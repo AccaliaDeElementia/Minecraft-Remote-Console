@@ -161,11 +161,7 @@ class CommandCategory(object):
         self.name = name
         self.description = description
         self.__commands = {}
-        self.add_command(Command(lambda x: self.__help(x),
-            name='help',
-            description='Show help for command category',
-            parameters=['_cmd'],
-            events=[Event.TYPE_INPUT]))
+        self.add_builtins()
 
     def __help(self, event):
         '''Show help for command category
@@ -205,6 +201,21 @@ class CommandCategory(object):
             if evt not in self.__commands.keys():
                 self.__commands[evt] = {}
             self.__commands[evt][command.name] = command
+
+    def clear_commands(self, event_types=[Event.TYPE_INPUT]):
+        '''Clear all commands from category
+
+        This included the automatically added Help command'''
+        for evt in event_types:
+            self.__commands[evt] = {}
+
+    def add_builtins(self):
+        '''Add builtin commands to the command category'''
+        self.add_command(Command(lambda x: self.__help(x),
+            name='help',
+            description='Show help for command category',
+            parameters=['_cmd'],
+            events=[Event.TYPE_INPUT]))
 
     def invoke(self, event):
         '''Invoke the event for all registered listeners in this category.
