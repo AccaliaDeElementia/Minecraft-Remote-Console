@@ -69,7 +69,10 @@ class Control (object):
         self.__window.Freeze()
         try:
             for line in event.get_output():
-                self.__window._output.AppendText(unicode(line)+u'\n')
+                uline = unicode(line)
+                if uline[-1] != u'\n':
+                    uline += u'\n'
+                self.__window._output.AppendText(uline)
         finally:
             if event.scroll_output:
                 self.__window._output.ShowPosition(
