@@ -95,6 +95,7 @@ class SystemCommands(object):
             '''Exit the application
             '''
             self.__controler.quit_app()
+            event.is_handled = True
         return Command(quit, events = [Events.Event.TYPE_INPUT])
 
     def __list_env(self):
