@@ -3,13 +3,22 @@ import csv
 
 class Event(object):
     #TODO: Names, not codes
-    TYPE_INPUT = 0x1
-    TYPE_OUTPUT = 0x2
-    TYPE_QUIT = 0x4
-    TYPE_CONNECT = 0x8
-    TYPE_DISCONNECT = 0x10
-    TYPE_KEYPRESS = 0x20
-    TYPE_ANY = 0x0
+    TYPE_PREINPUT = 'PREINPUT'
+    TYPE_INPUT = 'INPUT'
+    TYPE_OUTPUT = 'OUTPUT'
+    TYPE_QUIT = 'QUIT'
+    TYPE_CONNECT = 'CONNECT'
+    TYPE_DISCONNECT = 'DISCONNECT'
+    TYPE_KEYPRESS = 'KEYPRESS'
+    TYPE_ANY = [
+        TYPE_PREINPUT,
+        TYPE_INPUT,
+        TYPE_OUTPUT,
+        TYPE_QUIT,
+        TYPE_CONNECT,
+        TYPE_DISCONNECT,
+        TYPE_KEYPRESS
+    ]
     event_type = TYPE_ANY
     def __init__(self, data, after=None):
         self.event_type = Event.TYPE_ANY
@@ -48,13 +57,21 @@ class Event(object):
     def get_triggered_events(self):
         return list(self.__triggered_events)
 
+class PreInputEvent(Event):
+    event_type = Event.TYPE_PREINPUT
+    def __init__(self, data, *args, **kwargs):
+        super(PreInputEvent, self).__init__(data, *args, **kwargs)
+        self.event_type = Event.TYPE_PREINPUT
+        self.add_output('>>> %s' % data)
+        self.set_input = True
+        evt = InputEvent(data)
+        self.add_triggered_event(evt)
+
 class InputEvent(Event):
     event_type = Event.TYPE_INPUT
     def __init__(self, data, *args, **kwargs):
         super(InputEvent, self).__init__(data, *args, **kwargs)
         self.event_type = Event.TYPE_INPUT
-        self.add_output('>>> %s' % data)
-        self.set_input = True
 
 class OutputEvent(Event):
     event_type = Event.TYPE_OUTPUT

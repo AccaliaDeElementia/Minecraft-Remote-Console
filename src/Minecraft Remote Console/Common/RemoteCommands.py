@@ -30,7 +30,7 @@ class ConsoleListener(Thread):
                     ctrl.trigger_event(evt)
         except Exception as e:
             evt = Events.OutputEvent(data='ERROR')
-            event.add_output('Error: %s' % e)
+            evt.add_output('Error: %s' % e)
             ctrl.trigger_event(evt)
             raise
         finally:
@@ -82,6 +82,8 @@ class RemoteCommands(object):
             for cmd in cmds:
                 self.__category.add_command(cmd)
             self.__category.add_builtins()
+            self.__controler.set_default_handler(self.__do_console())
+            event.is_handled = True
         return Command(on_connect, events=[Events.Event.TYPE_CONNECT])
    
     def __on_disconnect(self):
@@ -89,6 +91,7 @@ class RemoteCommands(object):
             self.__server = None
             self.__category.clear_commands()
             self.__category.add_builtins()
+            self.__controler.set_default_handler(self.__noop())
             event.is_handled = True
         return Command(on_disconnect, events=[Events.Event.TYPE_DISCONNECT])
     
@@ -100,14 +103,42 @@ class RemoteCommands(object):
             sub = ConsoleListener(feed, self.__controler)
             self.__subscription = sub
             sub.start()
+            event.is_handled = True
         return Command(subscribe, events=[Events.Event.TYPE_CONNECT])
 
+    def __unsubscribe(self):
+        def unsubscribe(event):
+            if self.__subscription != None:
+                self.__subscription.active = False
+            self.__subscription = None
+            event.is_handled = True
+        return Command(unsubscribe, events=[Events.Event.TYPE_DISCONNECT])
 
     #endregion: Connection Events
 
     #region: Input Events
     #endregion: Input Events
     
+    #region: Default Handlers
+    def __noop(self):
+        def noop (*args, **kwargs):
+            pass
+        return noop
+
+    def __do_console(self):
+        def handler(event):
+            if (event.event_type == Events.Event.TYPE_INPUT
+                    and self.__server != None):
+                if event.data[0] == '/':
+                    #console command
+                    self.__server.call('runConsoleCommand', event.data[1:])
+                else:
+                    #chat
+                    name = event.env.get('name', 'Megatron')
+                    self.__server.call('broadcastWithName', event.data, name)
+        return handler           
+                
+    #endregion: Default Handlers
     def create_commands(self):
         category = CommandCategory(':', 'Remote JSONAPI Commands', 
             'Commands using JSONAPI')
@@ -116,5 +147,6 @@ class RemoteCommands(object):
         category.add_command(self.__on_connect())
         category.add_command(self.__on_disconnect())
         category.add_command(self.__subscribe())
+        category.add_command(self.__unsubscribe())
         return category
 # vim: shiftwidth=4:softtabstop=4:expandtab:autoindent:syntax=python

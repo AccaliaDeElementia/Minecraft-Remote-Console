@@ -29,7 +29,7 @@ class SystemCommands(object):
             if (isinstance (event, Events.KeyPressEvent) and event.key 
                     in [wx.WXK_RETURN, wx.WXK_NUMPAD_ENTER]):
                 # trigger an InputEvent when the user presses the enter key
-                evt = Events.InputEvent(event.data)
+                evt = Events.PreInputEvent(event.data)
 
                 # do some history housekeeping
                 history = self.__datastore['history']

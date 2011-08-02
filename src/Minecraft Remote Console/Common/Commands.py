@@ -230,10 +230,11 @@ class CommandCategory(object):
                 event.add_output('Command encountered unexpected error: %s'%e)
                 event.stop_propagation = True
                 raise 
-        if event.event_type & Event.TYPE_INPUT != 0: # InputEvents are special
+        if event.event_type == Event.TYPE_INPUT: # InputEvents are special
             if event.data and event.data[0] == self.prefix:
                 cmd = resolve_cmd(event.event_type, event.args[0][1:])
                 if cmd == None:
+                    raise Exception('Foo')
                     event.add_output ('Unrecognized command')
                     event.is_handled = True
                 else:

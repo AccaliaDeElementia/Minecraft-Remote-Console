@@ -51,7 +51,7 @@ class Control (object):
     def __evt_action_click(self, event):
         '''Handles onSend events.
         '''
-        evt = Events.InputEvent(self.__window._entry.Value)
+        evt = Events.PreInputEvent(self.__window._entry.Value)
         self.trigger_event(evt)
         if not evt.is_canceled:
             self.__window._entry.SetFocus()
@@ -97,10 +97,9 @@ class Control (object):
             wx.CallAfter(self.__update_after_event, event)
             if callable(event.after):
                 wx.CallAfter(event.after)
-        for evt in event.get_triggered_events():
-            self.trigger_event(evt)
+            for evt in event.get_triggered_events():
+                self.trigger_event(evt)
         
-
     def quit_app(self):
         def __quit():
             self.__window.Close()
@@ -177,5 +176,7 @@ class Control (object):
         if not match:
             self.__stores[prefix] = {}
         return self.__stores[prefix]
- 
+
+    def set_default_handler(self, handler):
+        self.__default_handler = handler
 # vim: shiftwidth=4:softtabstop=4:expandtab:autoindent:syntax=python
