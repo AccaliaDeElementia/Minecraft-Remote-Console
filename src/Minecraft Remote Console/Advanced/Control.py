@@ -31,23 +31,10 @@ class Control (object):
     def __evt_entry_char(self, event):
         '''Handles special case character entry.
         '''
-        actions = {
-            wx.WXK_RETURN: 'ENTER',
-            wx.WXK_NUMPAD_ENTER: 'ENTER',
-            wx.WXK_PAGEUP: 'PAGE UP',
-            wx.WXK_NUMPAD_PAGEUP: 'PAGE UP',
-            wx.WXK_PAGEDOWN: 'PAGE DOWN',
-            wx.WXK_NUMPAD_PAGEDOWN: 'PAGE DOWN',
-            wx.WXK_UP: 'UP',
-            wx.WXK_NUMPAD_UP: 'UP',
-            wx.WXK_DOWN: 'DOWN',
-            wx.WXK_NUMPAD_DOWN: 'DOWN',
-        }
         evt = Events.KeyPressEvent(self.__window._entry.Value, 
                                    event.GetKeyCode())
         self.trigger_event(evt)
         event.Skip()
-
     def __evt_action_click(self, event):
         '''Handles onSend events.
         '''

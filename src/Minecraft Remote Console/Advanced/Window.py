@@ -28,7 +28,8 @@ class AdvancedWindow (wx.Frame):
         inputSizer = wx.BoxSizer(wx.HORIZONTAL)
         inputArea.SetSizer(inputSizer)
 
-        self._entry = wx.TextCtrl(inputArea)
+        self._entry = wx.TextCtrl(inputArea,
+            style=wx.TE_PROCESS_ENTER)
         self._entry.SetFocus()
         inputSizer.Add(self._entry, proportion=1, flag=wx.EXPAND|wx.ALL)
 
@@ -36,8 +37,5 @@ class AdvancedWindow (wx.Frame):
         inputSizer.Add(self._action, proportion=0)
 
 if __name__ == '__main__':
-    app = AdvancedWindow.start_app()
-    adv = AdvancedWindow()
-    adv.Show()
-    app.MainLoop()
+    pass
 # vim: shiftwidth=4:softtabstop=4:expandtab:autoindent:syntax=python

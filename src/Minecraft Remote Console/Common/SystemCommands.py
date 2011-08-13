@@ -13,6 +13,17 @@ class SystemCommands(object):
             self.__datastore['history'] = ['']
         self.__datastore['historypos'] = len(self.__datastore['history']) - 1
         self.__server = None
+
+    def __debug(self):
+        def debug(event):
+            '''Trigger a submit when the enter key is pressed.
+
+            Accepts either keyboard enter or numpad enter.
+            '''
+            if (isinstance (event, Events.KeyPressEvent) and event.key 
+                    in [wx.WXK_RETURN, wx.WXK_NUMPAD_ENTER]):
+                print event.key
+        return Command(debug, events=[Events.Event.TYPE_KEYPRESS])
    
     #region: KeyPress Events
     def __onquit(self):
@@ -241,6 +252,8 @@ class SystemCommands(object):
         
         # Testing. Remove after
         category.add_command(Command(self.__quitter(), name = 'q'))
+
+        category.add_command(self.__debug())
 
         # Input Events
         category.add_command(self.__quitter())
