@@ -25,7 +25,7 @@ class Event(object):
         TYPE_KEYPRESS
     ]
     event_type = TYPE_ANY
-    def __init__(self, data, after=None):
+    def __init__(self, data, on_success=None, after=None):
         self.event_type = Event.TYPE_ANY
         self.data = data
         self.clear_input = False
@@ -39,6 +39,7 @@ class Event(object):
         self.is_handled = False
         self.scroll_output = False
         self.stop_execution = False
+        self.on_success = on_success
         self.after = after
         self.env = {}
         self.__output = []
@@ -82,6 +83,7 @@ class OutputEvent(Event):
     event_type = Event.TYPE_OUTPUT
     def __init__(self, data, *args, **kwargs):
         super(OutputEvent, self).__init__(data, *args, **kwargs)
+        self.add_output(data)
         self.event_type = Event.TYPE_OUTPUT
 
 class QuitEvent(Event):

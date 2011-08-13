@@ -82,11 +82,13 @@ class Control (object):
             self.__default_handler(event)
         if not event.is_canceled:
             wx.CallAfter(self.__update_after_event, event)
-            if callable(event.after):
-                wx.CallAfter(event.after)
+            if callable(event.on_success):
+                wx.CallAfter(event.on_success)
             for evt in event.get_triggered_events():
                 self.trigger_event(evt)
-        
+        if callable(event.after):
+            wx.CallAfter(event.after)
+ 
     def quit_app(self):
         def __quit():
             self.__window.Close()

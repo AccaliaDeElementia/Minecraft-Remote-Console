@@ -26,7 +26,6 @@ class ConsoleListener(Thread):
                 line = res[res['result']]['line']
                 if self.__filter(line) and self.active:
                     evt = Events.OutputEvent(data=line)
-                    evt.add_output(line)
                     ctrl.trigger_event(evt)
         except Exception as e:
             evt = Events.OutputEvent(data='ERROR')

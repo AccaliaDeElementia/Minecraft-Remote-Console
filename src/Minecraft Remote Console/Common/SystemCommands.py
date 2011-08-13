@@ -1,24 +1,91 @@
 #!/usr/bin/python
+import csv
+from StringIO import StringIO
+
 import wx
 
 from Common.Commands import CommandCategory, Command
-from Common import Events
+from Common.Events import *
 from Common.MinecraftApi import MinecraftJsonApi
+
+ALIAS_STORE = 'aliases'
+HISTORY_STORE = 'history'
+HISTORY_POS = 'historypos'
 
 class SystemCommands(object):
     def __init__(self, controler):
         self.__controler = controler
         self.__datastore = controler.get_datastore('System Commands')
-        if 'history' not in self.__datastore.keys():
-            self.__datastore['history'] = ['']
-        self.__datastore['historypos'] = len(self.__datastore['history']) - 1
+        datastore = self.__datastore
+        if HISTORY_STORE not in datastore.keys():
+            datastore[HISTORY_STORE] = ['']
+        datastore[HISTORY_POS] = len(datastore[HISTORY_STORE]) - 1
+        if ALIAS_STORE not in self.__datastore.keys():
+            self.__datastore[ALIAS_STORE] = {}
         self.__server = None
+        self.__alias_recording = None
+
+    #region: Aliases
+    def __alias_cmd(self):
+        recording = 'Recording alias \'%s\'. Enter command to alias now.'
+        def alias(event):
+            '''Add an alias command
+            '''
+            name = event.args[1]
+            if len(name.split()) > 1:
+                event.add_output('Alias name cannot contain whitespace')
+                event.is_handled = True
+                return
+            if name in ['#alias', '#unalias', '#quit']:
+                event.add_output('Cannot alias protected command: '+name)
+                event.is_handled = True
+                return
+            self.__alias_recording = name
+            event.add_output(recording % name)
+            event.is_handled = True
+            pass
+        return Command(alias, 
+            parameters=['name'],
+            events=[Event.TYPE_INPUT])
+    def __alias_recorder(self):
+        saved = 'Saved alias: \'%s\' => \'%s\''
+        def record(event):
+            if self.__alias_recording != None:
+                aliases = self.__datastore[ALIAS_STORE]
+                aliases[self.__alias_recording] = event.data
+                evt = OutputEvent(saved % (self.__alias_recording,event.data))
+                evt.set_input = True
+                self.__controler.trigger_event(evt)
+                self.__alias_recording = None
+                event.is_canceled = True
+                event.is_handled = True
+        return Command(record, events=[Event.TYPE_PREINPUT])
+    def __alias_listener(self):
+        def deserialize(data):
+           return list(csv.reader([data], delimiter=' '))[0] 
+        def serialize(data):
+            s = StringIO()
+            writer = csv.writer(s, delimiter=' ')
+            writer.writerow(data)
+            s.seek(0)
+            return s.read()
+        def listener(event):
+            aliases = self.__datastore[ALIAS_STORE]
+            if len(event.args) and event.args[0] in aliases.keys():
+                event.is_canceled = True
+                event.is_handled = True
+                args = deserialize(aliases[event.args[0]]) + event.args[1:]
+                evt = PreInputEvent(serialize(args))
+                self.__controler.trigger_event(evt)
+        return Command(listener, events=[Event.TYPE_PREINPUT])
+
+    #endregion: Aliases
 
     #region: KeyPress Events
     def __onquit(self):
         def onquit(event):
             self.__controler.save()
-        return Command(onquit, events=[Events.Event.TYPE_QUIT])
+        return Command(onquit, events=[Event.TYPE_QUIT])
 
     def __submitter(self):
         def submit(event):
@@ -26,10 +93,10 @@ class SystemCommands(object):
 
             Accepts either keyboard enter or numpad enter.
             '''
-            if (isinstance (event, Events.KeyPressEvent) and event.key 
+            if (isinstance (event, KeyPressEvent) and event.key 
                     in [wx.WXK_RETURN, wx.WXK_NUMPAD_ENTER]):
                 # trigger an InputEvent when the user presses the enter key
-                evt = Events.PreInputEvent(event.data)
+                evt = PreInputEvent(event.data)
 
                 # do some history housekeeping
                 history = self.__datastore['history']
@@ -39,28 +106,28 @@ class SystemCommands(object):
 
                 # trigger the new event
                 event.add_triggered_event(evt)
-        return Command(submit, events=[Events.Event.TYPE_KEYPRESS])
+        return Command(submit, events=[Event.TYPE_KEYPRESS])
 
     def __scroll_up(self):
         def scrollup(event):
             '''Scroll the output window one page up'''
-            if (isinstance (event, Events.KeyPressEvent) and event.key 
+            if (isinstance (event, KeyPressEvent) and event.key 
                     in [wx.WXK_PAGEUP, wx.WXK_NUMPAD_PAGEUP]):
                 self.__controler.scroll_up()
-        return Command(scrollup, events=[Events.Event.TYPE_KEYPRESS])
+        return Command(scrollup, events=[Event.TYPE_KEYPRESS])
 
     def __scroll_down(self):
         def scrolldown(event):
             '''Scroll the output window one page down'''
-            if (isinstance (event, Events.KeyPressEvent) and event.key 
+            if (isinstance (event, KeyPressEvent) and event.key 
                     in [wx.WXK_PAGEDOWN, wx.WXK_NUMPAD_PAGEDOWN]):
                 self.__controler.scroll_down()
-        return Command(scrolldown, events=[Events.Event.TYPE_KEYPRESS])
+        return Command(scrolldown, events=[Event.TYPE_KEYPRESS])
 
     def __histforward(self):
         def histforward(event):
             '''Move forward in time'''
-            if (isinstance (event, Events.KeyPressEvent) and event.key 
+            if (isinstance (event, KeyPressEvent) and event.key 
                     in [wx.WXK_DOWN, wx.WXK_NUMPAD_DOWN]):
                 history = self.__datastore['history']
                 pos = self.__datastore['historypos']
@@ -70,12 +137,12 @@ class SystemCommands(object):
                     event.set_input = True
                     event.input = history[pos]
                     self.__datastore['historypos'] = pos
-        return Command(histforward, events=[Events.Event.TYPE_KEYPRESS])
+        return Command(histforward, events=[Event.TYPE_KEYPRESS])
 
     def __histback(self):
         def histback(event):
             '''Move backward in time'''
-            if (isinstance (event, Events.KeyPressEvent) and event.key 
+            if (isinstance (event, KeyPressEvent) and event.key 
                     in [wx.WXK_UP, wx.WXK_NUMPAD_UP]):
                 history = self.__datastore['history']
                 pos = self.__datastore['historypos']
@@ -85,7 +152,7 @@ class SystemCommands(object):
                     event.set_input = True
                     event.input = history[pos]
                     self.__datastore['historypos'] = pos
-        return Command(histback, events=[Events.Event.TYPE_KEYPRESS])
+        return Command(histback, events=[Event.TYPE_KEYPRESS])
 
     #endregion: KeyPress Events
 
@@ -96,7 +163,7 @@ class SystemCommands(object):
             '''
             self.__controler.quit_app()
             event.is_handled = True
-        return Command(quit, events = [Events.Event.TYPE_INPUT])
+        return Command(quit, events=[Event.TYPE_INPUT])
 
     def __list_env(self):
         empty = 'Nobody here but us chickens!'
@@ -111,7 +178,7 @@ class SystemCommands(object):
             else:
                 event.add_output(empty)
             event.is_handled = True
-        return Command(env, events=[Events.Event.TYPE_INPUT])
+        return Command(env, events=[Event.TYPE_INPUT])
 
     def __set_env(self):
         def set(event):
@@ -120,7 +187,7 @@ class SystemCommands(object):
             event.is_handled = True
         return Command(set, 
                 parameters=['key', 'value'],
-                events=[Events.Event.TYPE_INPUT])
+                events=[Event.TYPE_INPUT])
 
     def __unset_env(self):
         def unset(event):
@@ -130,14 +197,14 @@ class SystemCommands(object):
             event.is_handled = True
         return Command(unset, 
                 parameters=['key'],
-                events=[Events.Event.TYPE_INPUT])
+                events=[Event.TYPE_INPUT])
 
     def __clear(self):
         def clear(event):
             '''Clear the screen of output'''
             self.__controler.clear()
             event.is_handled = True
-        return Command(clear, events=[Events.Event.TYPE_INPUT])
+        return Command(clear, events=[Event.TYPE_INPUT])
 
     def __forget(self):
         def forget(event):
@@ -145,7 +212,7 @@ class SystemCommands(object):
             self.__datastore['history'] = ['']
             self.__datastore['historypos'] = 0
             event.is_handled = True
-        return Command(forget, events=[Events.Event.TYPE_INPUT])
+        return Command(forget, events=[Event.TYPE_INPUT])
 
     def __connect(self):
         opts = [
@@ -187,7 +254,7 @@ class SystemCommands(object):
                     event.is_handled = True
                     return
             self.__server = server
-            evt = Events.ConnectEvent(data=server)
+            evt = ConnectEvent(data=server)
             event.add_triggered_event(evt)
             event.is_handled = True
         return Command(connect,
@@ -199,7 +266,7 @@ class SystemCommands(object):
                         ('remote_password', 'Override default password (demo)'),
                         ('remote_salt', 'Override default salt ()')
                     ],
-                    events=[Events.Event.TYPE_INPUT])
+                    events=[Event.TYPE_INPUT])
 
     def __disconnect(self):
         def disconnect(event):
@@ -209,7 +276,7 @@ class SystemCommands(object):
                 evt = Events.DisconnectEvent(data=self.__server)
                 event.add_triggered_event(evt)
             event.is_handled = True
-        return Command(disconnect, events=[Events.Event.TYPE_INPUT])
+        return Command(disconnect, events=[Event.TYPE_INPUT])
 
     def __save(self):
         def save(event):
@@ -220,7 +287,7 @@ class SystemCommands(object):
             except Exception as e:
                 event.add_output('Error: $s' %e)
             event.is_handled = True
-        return Command(save, events=[Events.Event.TYPE_INPUT])
+        return Command(save, events=[Event.TYPE_INPUT])
 
     def __load(self):
         def load(event):
@@ -231,7 +298,7 @@ class SystemCommands(object):
             except Exception as e:
                 event.add_output('Error: $s' %e)
             event.is_handled = True
-        return Command(load, events=[Events.Event.TYPE_INPUT])
+        return Command(load, events=[Event.TYPE_INPUT])
 
     #endregion: Input Events
     
@@ -239,9 +306,6 @@ class SystemCommands(object):
         category = CommandCategory('#', 'System Commands', 
             'Commands affecting local status')
         
-        # Testing. Remove after
-        category.add_command(Command(self.__quitter(), name = 'q'))
-
         # Input Events
         category.add_command(self.__quitter())
         category.add_command(self.__list_env())
@@ -261,6 +325,10 @@ class SystemCommands(object):
         category.add_command(self.__scroll_down())
         category.add_command(self.__histforward())
         category.add_command(self.__histback())
+
+        category.add_command(self.__alias_cmd())
+        category.add_command(self.__alias_recorder())
+        category.add_command(self.__alias_listener())
 
         return category
 # vim: shiftwidth=4:softtabstop=4:expandtab:autoindent:syntax=python
