@@ -234,7 +234,6 @@ class CommandCategory(object):
             if event.data and event.data[0] == self.prefix:
                 cmd = resolve_cmd(event.event_type, event.args[0][1:])
                 if cmd == None:
-                    raise Exception('Foo')
                     event.add_output ('Unrecognized command')
                     event.is_handled = True
                 else:
