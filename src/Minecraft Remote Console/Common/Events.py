@@ -2,7 +2,6 @@
 import csv
 
 class Event(object):
-    #TODO: Names, not codes
     TYPE_PREINPUT = 'PREINPUT'
     TYPE_INPUT = 'INPUT'
     TYPE_OUTPUT = 'OUTPUT'
@@ -10,11 +9,17 @@ class Event(object):
     TYPE_CONNECT = 'CONNECT'
     TYPE_DISCONNECT = 'DISCONNECT'
     TYPE_KEYPRESS = 'KEYPRESS'
+    TYPE_STARTUP = 'STARTUP'
+    TYPE_REGISTER = 'REGISTER'
+    TYPE_UNREGISTER = 'UNREGISTER'
     TYPE_ANY = [
         TYPE_PREINPUT,
         TYPE_INPUT,
         TYPE_OUTPUT,
+        TYPE_STARTUP,
         TYPE_QUIT,
+        TYPE_REGISTER,
+        TYPE_UNREGISTER,
         TYPE_CONNECT,
         TYPE_DISCONNECT,
         TYPE_KEYPRESS
@@ -84,6 +89,12 @@ class QuitEvent(Event):
     def __init__(self, data, *args, **kwargs):
         super(QuitEvent, self).__init__(data, *args, **kwargs)
         self.event_type = Event.TYPE_QUIT
+
+class StartupEvent(Event):
+    event_type = Event.TYPE_STARTUP
+    def __init__(self, data, *args, **kwargs):
+        super(QuitEvent, self).__init__(data, *args, **kwargs)
+        self.event_type = Event.TYPE_STARTUP
 
 class ConnectEvent(Event):
     event_type = Event.TYPE_CONNECT
