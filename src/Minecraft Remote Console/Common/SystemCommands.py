@@ -270,7 +270,7 @@ class SystemCommands(object):
 
     def __disconnect(self):
         def disconnect(event):
-            '''Disconnect from remote Ninecraft server
+            '''Disconnect from remote Minecraft server
             '''
             if self.__server:
                 evt = Events.DisconnectEvent(data=self.__server)
